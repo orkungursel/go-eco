@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  # github.repository as <account>/<repo>
+  NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        go-version:
+          - 1.18.x
+          - 1.17.x
+        os:
+          - ubuntu-latest
+
+    name: Build (${{ matrix.os }}/go-${{ matrix.go-version }})
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go-version }}
+    - run: go build
+
+  test:
+    strategy:
+      matrix:
+        go-version:
+          - 1.18.x
+        os:
+          - ubuntu-latest
+
+    name: Test & Coverage (${{ matrix.os }}/go-${{ matrix.go-version }})
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Use Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          args: --timeout=15m
+      - name: Test Coverage
+        uses: paambaati/codeclimate-action@v3.0.0
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CODECLIMATE_REPORTED_ID }}
+        with:
+          coverageCommand: go test -coverprofile c.out -v ./... -run="^Test"
+          coverageLocations: ${{github.workspace}}/c.out:gocov
+          prefix: github.com/${{ env.NAME }}
