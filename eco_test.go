@@ -741,3 +741,1576 @@ func TestEco_Unmarshal(t *testing.T) {
 		})
 	}
 }
+
+func TestEcoUnmarshal_convertStrToFieldVal_String(t *testing.T) {
+	str := "test"
+
+	type Struct struct {
+		FieldBlank      string
+		FieldEnv        string
+		FieldPtr        *string
+		FieldPtrWithVal *string
+		FieldDef        string `default:"foo"`
+		FieldNumericDef string `default:"1"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &str,
+			},
+			want: &Struct{
+				FieldBlank:      "",
+				FieldEnv:        "custom",
+				FieldPtr:        nil,
+				FieldPtrWithVal: &str,
+				FieldDef:        "foo",
+				FieldNumericDef: "1",
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "custom",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Int(t *testing.T) {
+	i := 99
+
+	type Struct struct {
+		FieldBlank      int
+		FieldEnv        int
+		FieldPtr        *int
+		FieldPtrWithVal *int
+		FieldDef        int `default:"2"`
+		FieldNumericDef int `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should handle all fields and negative values",
+			args: &Struct{},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        -1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: nil,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &Struct{},
+			want: &Struct{
+				FieldEnv: 1,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef int `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef int `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %#+v, wantErr %#+v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Uint(t *testing.T) {
+
+	i := uint(99)
+
+	type Struct struct {
+		FieldBlank      uint
+		FieldEnv        uint
+		FieldPtr        *uint
+		FieldPtrWithVal *uint
+		FieldDef        uint `default:"2"`
+		FieldNumericDef uint `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &struct {
+				FieldEnv uint
+			}{},
+			want: &struct {
+				FieldEnv uint
+			}{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef uint `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef uint `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Int64(t *testing.T) {
+
+	i := int64(99)
+
+	type Struct struct {
+		FieldBlank      int64
+		FieldEnv        int64
+		FieldPtr        *int64
+		FieldPtrWithVal *int64
+		FieldDef        int64 `default:"2"`
+		FieldNumericDef int64 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &struct {
+				FieldEnv int64
+			}{},
+			want: &struct {
+				FieldEnv int64
+			}{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef int64 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef int64 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Uint64(t *testing.T) {
+
+	i := uint64(99)
+
+	type Struct struct {
+		FieldBlank      uint64
+		FieldEnv        uint64
+		FieldPtr        *uint64
+		FieldPtrWithVal *uint64
+		FieldDef        uint64 `default:"2"`
+		FieldNumericDef uint64 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &struct {
+				FieldEnv uint64
+			}{},
+			want: &struct {
+				FieldEnv uint64
+			}{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef uint64 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef uint64 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Int32(t *testing.T) {
+
+	i := int32(99)
+
+	type Struct struct {
+		FieldBlank      int32
+		FieldEnv        int32
+		FieldPtr        *int32
+		FieldPtrWithVal *int32
+		FieldDef        int32 `default:"2"`
+		FieldNumericDef int32 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &struct {
+				FieldEnv int32
+			}{},
+			want: &struct {
+				FieldEnv int32
+			}{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef int32 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef int32 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Uint32(t *testing.T) {
+
+	i := uint32(99)
+
+	type Struct struct {
+		FieldBlank      uint32
+		FieldEnv        uint32
+		FieldPtr        *uint32
+		FieldPtrWithVal *uint32
+		FieldDef        uint32 `default:"2"`
+		FieldNumericDef uint32 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &struct {
+				FieldEnv uint32
+			}{},
+			want: &struct {
+				FieldEnv uint32
+			}{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef uint32 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef uint32 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Int16(t *testing.T) {
+
+	i := int16(99)
+
+	type Struct struct {
+		FieldBlank      int16
+		FieldEnv        int16
+		FieldPtr        *int16
+		FieldPtrWithVal *int16
+		FieldDef        int16 `default:"2"`
+		FieldNumericDef int16 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &struct {
+				FieldEnv int16
+			}{},
+			want: &struct {
+				FieldEnv int16
+			}{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef int16 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef int16 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Uint16(t *testing.T) {
+
+	i := uint16(99)
+
+	type Struct struct {
+		FieldBlank      uint16
+		FieldEnv        uint16
+		FieldPtr        *uint16
+		FieldPtrWithVal *uint16
+		FieldDef        uint16 `default:"2"`
+		FieldNumericDef uint16 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &struct {
+				FieldEnv uint16
+			}{},
+			want: &struct {
+				FieldEnv uint16
+			}{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef uint16 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef uint16 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Int8(t *testing.T) {
+
+	i := int8(99)
+
+	type Struct struct {
+		FieldBlank      int8
+		FieldEnv        int8
+		FieldPtr        *int8
+		FieldPtrWithVal *int8
+		FieldDef        int8 `default:"2"`
+		FieldNumericDef int8 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &struct {
+				FieldEnv int8
+			}{},
+			want: &struct {
+				FieldEnv int8
+			}{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef int8 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef int8 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Uint8(t *testing.T) {
+
+	i := uint8(99)
+
+	type Struct struct {
+		FieldBlank      uint8
+		FieldEnv        uint8
+		FieldPtr        *uint8
+		FieldPtrWithVal *uint8
+		FieldDef        uint8 `default:"2"`
+		FieldNumericDef uint8 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &struct {
+				FieldEnv uint8
+			}{},
+			want: &struct {
+				FieldEnv uint8
+			}{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef uint8 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef uint8 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Float32(t *testing.T) {
+	i := float32(99.99)
+
+	type Struct struct {
+		FieldBlank      float32
+		FieldEnv        float32
+		FieldPtr        *float32
+		FieldPtrWithVal *float32
+		FieldDef        float32 `default:"2.1"`
+		FieldNumericDef float32 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1.1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2.1,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1.1",
+			},
+		},
+		{
+			name: "should handle all fields and negative values",
+			args: &Struct{},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        -1.9,
+				FieldPtr:        nil,
+				FieldPtrWithVal: nil,
+				FieldDef:        2.1,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1.9",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &Struct{},
+			want: &Struct{
+				FieldEnv: 1,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef float32 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef float32 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %#+v, wantErr %#+v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Float64(t *testing.T) {
+	i := float64(-99.99)
+
+	type Struct struct {
+		FieldBlank      float64
+		FieldEnv        float64
+		FieldPtr        *float64
+		FieldPtrWithVal *float64
+		FieldDef        float64 `default:"2.1"`
+		FieldNumericDef float64 `default:"3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &i,
+			},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        1.1,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &i,
+				FieldDef:        2.1,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1.1",
+			},
+		},
+		{
+			name: "should handle all fields and negative values",
+			args: &Struct{},
+			want: &Struct{
+				FieldBlank:      0,
+				FieldEnv:        -1.9,
+				FieldPtr:        nil,
+				FieldPtrWithVal: nil,
+				FieldDef:        2.1,
+				FieldNumericDef: 3,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1.9",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &Struct{},
+			want: &Struct{
+				FieldEnv: 1,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef float64 `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef float64 `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %#+v, wantErr %#+v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_Bool(t *testing.T) {
+	b := true
+
+	type Struct struct {
+		FieldBlank      bool
+		FieldEnv        bool
+		FieldPtr        *bool
+		FieldPtrWithVal *bool
+		FieldDef        bool `default:"true"`
+		FieldNumericDef bool `default:"1"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldBlank:      false,
+				FieldEnv:        true,
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        true,
+				FieldNumericDef: true,
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "1",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &Struct{},
+			want: &Struct{},
+			envs: map[string]string{
+				"FIELD_ENV": "aa",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should error when invalid value with default",
+			args: &struct {
+				FieldDef bool `default:"aa"`
+			}{},
+			want: &struct {
+				FieldDef bool `default:"aa"`
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_SliceString(t *testing.T) {
+	b := []string{"a", "b", "c"}
+
+	type Struct struct {
+		FieldBlank      []string
+		FieldEnv        []string
+		FieldPtr        *[]string
+		FieldPtrWithVal *[]string
+		FieldDef        []string `default:"d,e,f"`
+		FieldNumericDef []string `default:"1,2,3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldEnv:        []string{"x", "y", "z"},
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        []string{"d", "e", "f"},
+				FieldNumericDef: []string{"1", "2", "3"},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "x,y,z",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_SliceInt(t *testing.T) {
+	b := []int{1, 2, 3}
+
+	type Struct struct {
+		FieldBlank      []int
+		FieldEnv        []int
+		FieldPtr        *[]int
+		FieldPtrWithVal *[]int
+		FieldDef        []int `default:"4,5,6"`
+		FieldNumericDef []int `default:"1,2,3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldEnv:        []int{-1, -2, -3},
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        []int{4, 5, 6},
+				FieldNumericDef: []int{1, 2, 3},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1,-2,-3",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldEnv:        []int{-1, -2, -3},
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        []int{4, 5, 6},
+				FieldNumericDef: []int{1, 2, 3},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1,a,-3",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_SliceInt64(t *testing.T) {
+	b := []int64{1, 2, 3}
+
+	type Struct struct {
+		FieldBlank      []int64
+		FieldEnv        []int64
+		FieldPtr        *[]int64
+		FieldPtrWithVal *[]int64
+		FieldDef        []int64 `default:"4,5,6"`
+		FieldNumericDef []int64 `default:"1,2,3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldEnv:        []int64{-1, -2, -3},
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        []int64{4, 5, 6},
+				FieldNumericDef: []int64{1, 2, 3},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1,-2,-3",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldEnv:        []int64{-1, -2, -3},
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        []int64{4, 5, 6},
+				FieldNumericDef: []int64{1, 2, 3},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1,a,-3",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_SliceFloat32(t *testing.T) {
+	b := []float32{-1.2, 2.5, 3}
+
+	type Struct struct {
+		FieldBlank      []float32
+		FieldEnv        []float32
+		FieldPtr        *[]float32
+		FieldPtrWithVal *[]float32
+		FieldDef        []float32 `default:"-5.5,-4,-3.2"`
+		FieldNumericDef []float32 `default:"1,2,3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldEnv:        []float32{-1.1, -2.0, 3.5},
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        []float32{-5.5, -4, -3.2},
+				FieldNumericDef: []float32{1, 2, 3},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1.1, -2, 3.5",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldEnv:        []float32{-1.1, 2, 3.5},
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        []float32{-5.5, -4, -3.2},
+				FieldNumericDef: []float32{1, 2, 3},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1.1,a,3.5",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_SliceFloat64(t *testing.T) {
+	b := []float64{-1.2, 2.5, 3}
+
+	type Struct struct {
+		FieldBlank      []float64
+		FieldEnv        []float64
+		FieldPtr        *[]float64
+		FieldPtrWithVal *[]float64
+		FieldDef        []float64 `default:"-5.5,-4,-3.2"`
+		FieldNumericDef []float64 `default:"1,2,3"`
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should handle all fields",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldEnv:        []float64{-1.1, -2.0, 3.5},
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        []float64{-5.5, -4, -3.2},
+				FieldNumericDef: []float64{1, 2, 3},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1.1, -2, 3.5",
+			},
+		},
+		{
+			name: "should error when invalid value with env",
+			args: &Struct{
+				FieldPtrWithVal: &b,
+			},
+			want: &Struct{
+				FieldEnv:        []float64{-1.1, 2, 3.5},
+				FieldPtr:        nil,
+				FieldPtrWithVal: &b,
+				FieldDef:        []float64{-5.5, -4, -3.2},
+				FieldNumericDef: []float64{1, 2, 3},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "-1.1,a,3.5",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
+
+func TestEcoUnmarshal_convertStrToFieldVal_SliceUnsupportedType(t *testing.T) {
+	type Struct struct {
+		FieldBlank []bool
+		FieldEnv   []bool
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "should return unsupported type error",
+			args: &Struct{},
+			want: &Struct{
+				FieldEnv: []bool{},
+			},
+			envs: map[string]string{
+				"FIELD_ENV": "true, false",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %#+v, want %#+v", m, tt.want)
+			}
+		})
+	}
+}
