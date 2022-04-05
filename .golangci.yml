@@ -1,0 +1,12 @@
+output:
+  print-issued-lines: true
+  print-linter-name: true
+  unique-by-line: true
+
+run:
+  timeout: 1m
+  issue-exit-code: 1
+  tests: true
+  skip-dirs-use-default: true
+  allow-parallel-runners: false
+  go: "1.17"
