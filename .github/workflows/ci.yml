@@ -55,6 +55,6 @@ jobs:
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CODECLIMATE_REPORTED_ID }}
         with:
+          prefix: github.com/${{ env.NAME }}
           coverageCommand: go test -coverprofile c.out -v ./... -run="^Test"
           coverageLocations: ${{github.workspace}}/c.out:gocov
-          prefix: github.com/${{ env.NAME }}

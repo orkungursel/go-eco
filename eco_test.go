@@ -554,15 +554,6 @@ func TestEco_Unmarshal(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "should return same struct if has no default or env value",
-			args: &struct {
-				Name string
-			}{},
-			want: &struct {
-				Name string
-			}{},
-		},
-		{
 			name: "should bind struct with env vars",
 			args: &struct {
 				Name string
