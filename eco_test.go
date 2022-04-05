@@ -474,3 +474,270 @@ func TestEco_SetValueGetter(t *testing.T) {
 		})
 	}
 }
+
+func TestEco_Unmarshal(t *testing.T) {
+	sStr := "Bar"
+	s := &SampleArrayStruct{}
+	var ss2 *SampleArrayStruct
+	ss4 := &SampleComplexStruct4_Sub{
+		String: "custom_string",
+	}
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name:    "should error if argument is nil",
+			args:    nil,
+			wantErr: true,
+		},
+		{
+			name: "should error if argument is not a pointer",
+			args: struct {
+				Name string
+			}{},
+			wantErr: true,
+		},
+		{
+			name:    "should error if argument is not a pointer",
+			args:    *s,
+			wantErr: true,
+		},
+		{
+			name:    "should error if argument value is not a pointer",
+			args:    ss2,
+			wantErr: true,
+		},
+		{
+			name: "should error if sub struct has any error",
+			args: &SampleComplexStruct3{},
+			want: &SampleComplexStruct3{
+				Sub1: SampleComplexStruct3_Sub{
+					Sub1: SampleComplexStruct3_Sub_Sub{},
+					Sub2: &SampleComplexStruct3_Sub_Sub{},
+				},
+			},
+			envs: map[string]string{
+				"SUB1_SUB1_I64": "sub1",
+				"SUB1_SUB2_I64": "sub2",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should continue to unmarshal if sub field is a struct",
+			args: &SampleComplexStruct4{
+				Sub2: ss4,
+			},
+			want: &SampleComplexStruct4{
+				Sub1: SampleComplexStruct4_Sub{
+					Sub1: SampleComplexStruct4_Sub_Sub{},
+				},
+				Sub2: ss4,
+			},
+			envs: map[string]string{
+				"SUB2_STRING": "custom_string",
+			},
+		},
+		{
+			name: "should error if sub struct is not a pointer",
+			args: &SampleComplexStruct3{},
+			want: &SampleComplexStruct3{
+				Sub1: SampleComplexStruct3_Sub{},
+			},
+			envs: map[string]string{
+				"SUB1_SUB2_I64": "sub2",
+			},
+			wantErr: true,
+		},
+		{
+			name: "should return same struct if has no default or env value",
+			args: &struct {
+				Name string
+			}{},
+			want: &struct {
+				Name string
+			}{},
+		},
+		{
+			name: "should bind struct with env vars",
+			args: &struct {
+				Name string
+			}{},
+			want: &struct {
+				Name string
+			}{
+				Name: "Foo",
+			},
+			envs: map[string]string{
+				"NAME": "Foo",
+			},
+		},
+		{
+			name: "should bind struct with default values",
+			args: &struct {
+				Foo string `default:"Bar"`
+				Baz int    `default:"100"`
+			}{},
+			want: &struct {
+				Foo string `default:"Bar"`
+				Baz int    `default:"100"`
+			}{
+				Foo: "Bar",
+				Baz: 100,
+			},
+		},
+		{
+			name: "should bind TestStuct1 with default values",
+			args: &SampleStruct1{},
+			want: &SampleStruct1{
+				Foo: "Bar",
+				Baz: 100,
+			},
+		},
+		{
+			name: "should bind TestStuct1 with default value and env vars",
+			args: &SampleStruct1{},
+			envs: map[string]string{
+				"FOO": "Foo",
+			},
+			want: &SampleStruct1{
+				Foo: "Foo",
+				Baz: 100,
+			},
+		},
+		{
+			name: "should bind TestStuct2 with default values",
+			args: &SampleStruct2{},
+			want: &SampleStruct2{
+				Foo: "Bar",
+				Baz: 100,
+				Sub: SampleStruct3{
+					Foo: "Baz",
+				},
+			},
+		},
+		{
+			name: "should bind TestStuct2 with default values and env vars",
+			args: &SampleStruct2{},
+			envs: map[string]string{
+				"SUB_FOO": "Foo",
+			},
+			want: &SampleStruct2{
+				Foo: "Bar",
+				Baz: 100,
+				Sub: SampleStruct3{
+					Foo: "Foo",
+				},
+			},
+		},
+		{
+			name: "should bind struct with default values when a field is pointer",
+			args: &struct {
+				Foo *string `default:"Bar"`
+				Baz bool    `default:"1"`
+			}{},
+			want: &struct {
+				Foo *string `default:"Bar"`
+				Baz bool    `default:"1"`
+			}{
+				Foo: &sStr,
+				Baz: true,
+			},
+		},
+		{
+			name: "should bind struct with default values when a field is pointer and env vars",
+			args: &SampleComplexStruct{},
+			want: &SampleComplexStruct{
+				Foo: "Bar",
+				Sub1: SampleComplexStruct_Sub{
+					String:     "foo",
+					Float:      1.1,
+					FloatEmpty: 0,
+					Sub1: SampleComplexStruct_Sub_Sub{
+						I64: 0,
+					},
+				},
+			},
+		},
+		{
+			name: "should bind struct with default values when a field is pointer",
+			args: &SampleComplexStruct{},
+			envs: map[string]string{
+				"SUB1_STRING": "bar",
+				"SUB1_FLOAT":  "2.2",
+			},
+			want: &SampleComplexStruct{
+				Foo: "Bar",
+				Sub1: SampleComplexStruct_Sub{
+					String:     "bar",
+					Float:      2.2,
+					FloatEmpty: 0,
+					Sub1: SampleComplexStruct_Sub_Sub{
+						I64: 0,
+					},
+				},
+			},
+		},
+		{
+			name: "should bind array fields from defaults",
+			args: &SampleArrayStruct{},
+			envs: map[string]string{},
+			want: &SampleArrayStruct{
+				Foo: []string{"foo", "bar", "baz"},
+			},
+		},
+		{
+			name: "should bind array fields from env vars",
+			args: &SampleArrayStruct{},
+			envs: map[string]string{
+				"FOO": "a,b,c",
+			},
+			want: &SampleArrayStruct{
+				Foo: []string{"a", "b", "c"},
+			},
+		},
+		{
+			name: "should bind array fields from env vars 2",
+			args: &SampleArrayStruct{},
+			envs: map[string]string{
+				"FOO": "string 1,string 2",
+			},
+			want: &SampleArrayStruct{
+				Foo: []string{"string 1", "string 2"},
+			},
+		},
+		{
+			name: "should pass when a field is not exported",
+			args: &struct {
+				notExported string
+			}{},
+			want: &struct {
+				notExported string
+			}{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := New()
+			m := tt.args
+
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+
+			if err := e.Unmarshal(m); (err != nil) != tt.wantErr {
+				t.Errorf("Eco.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr != true && tt.want != nil && !reflect.DeepEqual(m, tt.want) {
+				t.Errorf("Eco.Unmarshal() = %v, want %v", m, tt.want)
+			}
+		})
+	}
+}
