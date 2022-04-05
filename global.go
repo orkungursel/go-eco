@@ -26,6 +26,6 @@ func SetValueGetter(valueGetter envValueGetterFunc) *eco {
 	return ee.SetValueGetter(valueGetter)
 }
 
-func Unmarshal(model any) error {
+func Unmarshal(model interface{}) error {
 	return ee.Unmarshal(model)
 }
