@@ -477,11 +477,15 @@ func TestEco_SetValueGetter(t *testing.T) {
 
 func TestEco_Unmarshal(t *testing.T) {
 	sStr := "Bar"
-	s := &SampleArrayStruct{}
-	var ss2 *SampleArrayStruct
+	ss := struct {
+		Name string
+	}{}
+	sas := &SampleArrayStruct{}
 	ss4 := &SampleComplexStruct4_Sub{
 		String: "custom_string",
 	}
+
+	var ss2 *SampleArrayStruct
 
 	tests := []struct {
 		name    string
@@ -504,7 +508,7 @@ func TestEco_Unmarshal(t *testing.T) {
 		},
 		{
 			name:    "should error if argument is not a pointer",
-			args:    *s,
+			args:    *sas,
 			wantErr: true,
 		},
 		{
@@ -552,6 +556,11 @@ func TestEco_Unmarshal(t *testing.T) {
 				"SUB1_SUB2_I64": "sub2",
 			},
 			wantErr: true,
+		},
+		{
+			name: "should return same struct if has no default or env value",
+			args: &ss,
+			want: &ss,
 		},
 		{
 			name: "should bind struct with env vars",
