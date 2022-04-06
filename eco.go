@@ -74,7 +74,7 @@ func (e *eco) SetEnvNameTransformer(transformerFunc envNameTransformerFunc) *eco
 	return e
 }
 
-// SetEnvNameSeparator sets the paths to the environment files.
+// SetEnvNameSeparator sets the separator for the environment variable names.
 func (e *eco) SetEnvNameSeparator(envNameSeparator string) *eco {
 	if envNameSeparator != "" {
 		e.envNameSeparator = envNameSeparator
@@ -90,19 +90,19 @@ func (e *eco) SetValueGetter(valueGetter envValueGetterFunc) *eco {
 	return e
 }
 
-// Unmarshal unmarshals the environment variables into the given struct.
-func (e *eco) Unmarshal(m interface{}) error {
-	if m == nil {
+// Unmarshal takes a pointer to a struct and unmarshals the environment variables to the struct.
+func (e *eco) Unmarshal(v interface{}) error {
+	if v == nil {
 		return ErrRequiresNonNilPtr
 	}
 
-	t := reflect.TypeOf(m)
-	if t.Kind() != reflect.Ptr {
+	rt := reflect.TypeOf(v)
+	if rt.Kind() != reflect.Ptr {
 		return ErrRequiresNonNilPtr
 	}
 
-	v := reflect.ValueOf(m)
-	if v.IsNil() {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
 		return ErrRequiresNonNilPtr
 	}
 
@@ -111,7 +111,7 @@ func (e *eco) Unmarshal(m interface{}) error {
 		p = append(p, prefix)
 	}
 
-	return e.bindStructValues(m, p...)
+	return e.bindStructValues(v, p...)
 }
 
 // bindStructValues binds the environment variables to the given struct.
